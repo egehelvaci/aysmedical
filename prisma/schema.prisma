@@ -21,6 +21,8 @@ model Product {
   features      ProductFeature[]
   details       ProductDetail[]
   usageAreas    ProductUsageArea[]
+
+  @@map("product")
 }
 
 // ProductLocalization modeli
@@ -39,6 +41,7 @@ model ProductLocalization {
   
   // Benzersiz kısıt
   @@unique([productId, languageCode])
+  @@map("product_localization")
 }
 
 // ProductFeature modeli
@@ -54,6 +57,8 @@ model ProductFeature {
   
   // İlişkiler
   product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@map("product_feature")
 }
 
 // ProductDetail modeli
@@ -68,6 +73,8 @@ model ProductDetail {
   
   // İlişkiler
   product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@map("product_detail")
 }
 
 // ProductUsageArea modeli
@@ -83,6 +90,8 @@ model ProductUsageArea {
   
   // İlişkiler
   product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@map("product_usage_area")
 }
 
 // Admin modeli
@@ -92,6 +101,8 @@ model Admin {
   password  String
   createdAt DateTime @default(now()) @map("createdAt")
   updatedAt DateTime @updatedAt @map("updatedAt")
+  
+  @@map("admin")
 }
 
 // ContactMessage modeli
@@ -105,4 +116,6 @@ model ContactMessage {
   read      Boolean   @default(false)
   createdAt DateTime  @default(now()) @map("createdAt")
   updatedAt DateTime  @updatedAt @map("updatedAt")
+  
+  @@map("contact_message")
 } 

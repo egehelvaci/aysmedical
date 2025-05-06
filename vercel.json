@@ -25,7 +25,7 @@
     "API_BASE_URL": "https://aysmedical.vercel.app",
     "NODE_ENV": "production"
   },
-  "buildCommand": "npm run typeorm:direct-sync && next build",
+  "buildCommand": "npx prisma generate && next build",
   "installCommand": "npm install",
   "outputDirectory": ".next",
   "regions": ["fra1"],
