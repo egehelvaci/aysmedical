@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaPhone, FaEnvelope, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa';
+import { FaPhone, FaEnvelope, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa';
 import CookieConsent from './CookieConsent';
 
 type FooterProps = {
@@ -53,20 +53,6 @@ const Footer = ({ lang }: FooterProps) => {
                   ? 'Modern tıbbi görüntüleme sistemleri sunan lider sağlık teknolojileri firması.'
                   : 'Leading healthcare technology company providing modern medical imaging systems.'}
               </p>
-              <div className="flex space-x-4">
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <FaFacebook size={20} />
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <FaTwitter size={20} />
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <FaInstagram size={20} />
-                </a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <FaLinkedin size={20} />
-                </a>
-              </div>
             </div>
 
             {/* Quick Links */}
