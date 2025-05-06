@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDataSource } from '@/lib/typeorm';
-import { Product } from '@/entities/Product';
-import { ProductLocalization } from '@/entities/ProductLocalization';
-import { ProductDetail } from '@/entities/ProductDetail';
-import { ProductFeature } from '@/entities/ProductFeature';
-import { ProductUsageArea } from '@/entities/ProductUsageArea';
+import { prisma } from '@/lib/prisma';
 import { isAuthenticated } from '@/lib/auth';
 import { createApiResponse, createApiErrorResponse } from '@/app/api/api-utils';
 
@@ -25,28 +20,24 @@ export async function GET(
       return createApiErrorResponse(request, 'Geçersiz ürün ID', { status: 400 });
     }
 
-    // TypeORM DataSource oluştur
-    const dataSource = await getDataSource();
-    const productRepository = dataSource.getRepository(Product);
-
-    // Ürünü getir - lazy loading kullanarak
-    const product = await productRepository.findOne({
-      where: { id }
+    // Prisma ile ürünü tüm ilişkileriyle birlikte getir
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        localizations: true,
+        features: true,
+        details: true,
+        usageAreas: true
+      }
     });
 
     if (!product) {
       return createApiErrorResponse(request, 'Ürün bulunamadı', { status: 404 });
     }
 
-    // Lazy loading ile ilişkileri yükle
-    const localizations = await product.localizations;
-    const features = await product.features;
-    const usageAreas = await product.usageAreas;
-    const details = await product.details;
-
     // Dil bazlı lokalizasyonları düzenle
     const localizationsByLang: Record<string, any> = {};
-    localizations.forEach(loc => {
+    product.localizations.forEach(loc => {
       localizationsByLang[loc.languageCode] = {
         name: loc.name,
         description: loc.description || '',
@@ -56,7 +47,7 @@ export async function GET(
 
     // Dil bazlı detayları düzenle
     const detailsByLang: Record<string, any> = {};
-    details.forEach(detail => {
+    product.details.forEach(detail => {
       detailsByLang[detail.languageCode] = {
         title: detail.title,
         content: detail.content
@@ -70,8 +61,8 @@ export async function GET(
       image_url: product.image_url,
       localizations: localizationsByLang,
       details: detailsByLang,
-      features: features || [],
-      usageAreas: usageAreas || [],
+      features: product.features || [],
+      usageAreas: product.usageAreas || [],
       createdAt: product.createdAt,
       updatedAt: product.updatedAt
     });
@@ -105,28 +96,14 @@ export async function PUT(
       return createApiErrorResponse(request, 'Geçersiz ürün ID', { status: 400 });
     }
 
-    // TypeORM DataSource oluştur
-    const dataSource = await getDataSource();
-    const productRepository = dataSource.getRepository(Product);
-    const localizationRepository = dataSource.getRepository(ProductLocalization);
-    const detailRepository = dataSource.getRepository(ProductDetail);
-    const featureRepository = dataSource.getRepository(ProductFeature);
-    const usageAreaRepository = dataSource.getRepository(ProductUsageArea);
-
-    // Ürünün varlığını kontrol et - lazy loading kullanarak
-    const existingProduct = await productRepository.findOne({
+    // Prisma ile ürünün varlığını kontrol et
+    const existingProduct = await prisma.product.findUnique({
       where: { id }
     });
 
     if (!existingProduct) {
       return createApiErrorResponse(request, 'Ürün bulunamadı', { status: 404 });
     }
-
-    // Lazy loading ile ilişkileri yükle
-    const localizations = await existingProduct.localizations;
-    const features = await existingProduct.features;
-    const usageAreas = await existingProduct.usageAreas;
-    const details = await existingProduct.details;
 
     // Gelen veriyi al
     const data = await request.json();
@@ -151,114 +128,143 @@ export async function PUT(
       );
     }
 
-    // Ürünü güncelle
-    existingProduct.code = data.code;
-    existingProduct.image_url = data.image_url;
-    
-    const updatedProduct = await productRepository.save(existingProduct);
+    // Prisma transaction ile tüm işlemleri gerçekleştir
+    const updatedProduct = await prisma.$transaction(async (tx) => {
+      // Ürünü güncelle
+      const product = await tx.product.update({
+        where: { id },
+        data: {
+          code: data.code,
+          image_url: data.image_url
+        }
+      });
 
-    // Mevcut lokalizasyonları sil
-    await localizationRepository.remove(localizations);
+      // Mevcut lokalizasyonları sil
+      await tx.productLocalization.deleteMany({
+        where: { productId: id }
+      });
 
-    // Yeni lokalizasyonları ekle
-    const newLocalizations = [];
-    
-    // Türkçe
-    if (data.localizations.tr) {
-      const trLocalization = new ProductLocalization();
-      trLocalization.productId = updatedProduct.id;
-      trLocalization.languageCode = 'tr';
-      trLocalization.name = data.localizations.tr.name;
-      trLocalization.description = data.localizations.tr.description || '';
-      trLocalization.slug = data.localizations.tr.slug || data.localizations.tr.name.toLowerCase().replace(/\s+/g, '-');
+      // Yeni lokalizasyonları ekle
+      const newLocalizations = [];
       
-      const savedTrLoc = await localizationRepository.save(trLocalization);
-      newLocalizations.push(savedTrLoc);
-    }
-    
-    // İngilizce (opsiyonel)
-    if (data.localizations.en?.name) {
-      const enLocalization = new ProductLocalization();
-      enLocalization.productId = updatedProduct.id;
-      enLocalization.languageCode = 'en';
-      enLocalization.name = data.localizations.en.name;
-      enLocalization.description = data.localizations.en.description || '';
-      enLocalization.slug = data.localizations.en.slug || data.localizations.en.name.toLowerCase().replace(/\s+/g, '-');
-      
-      const savedEnLoc = await localizationRepository.save(enLocalization);
-      newLocalizations.push(savedEnLoc);
-    }
-
-    // Mevcut detayları sil
-    await detailRepository.remove(details);
-
-    // Yeni detayları ekle
-    if (data.details) {
-      // Türkçe detay
-      const trDetail = new ProductDetail();
-      trDetail.productId = updatedProduct.id;
-      trDetail.languageCode = 'tr';
-      trDetail.title = data.details.title || '';
-      trDetail.content = data.details.content || '';
-      await detailRepository.save(trDetail);
-
-      // İngilizce detay (opsiyonel)
-      if (data.details.en) {
-        const enDetail = new ProductDetail();
-        enDetail.productId = updatedProduct.id;
-        enDetail.languageCode = 'en';
-        enDetail.title = data.details.en.title || '';
-        enDetail.content = data.details.en.content || '';
-        await detailRepository.save(enDetail);
+      // Türkçe
+      if (data.localizations.tr) {
+        const trLocalization = await tx.productLocalization.create({
+          data: {
+            productId: product.id,
+            languageCode: 'tr',
+            name: data.localizations.tr.name,
+            description: data.localizations.tr.description || '',
+            slug: data.localizations.tr.slug || data.localizations.tr.name.toLowerCase().replace(/\s+/g, '-')
+          }
+        });
+        newLocalizations.push(trLocalization);
       }
-    }
+      
+      // İngilizce (opsiyonel)
+      if (data.localizations.en?.name) {
+        const enLocalization = await tx.productLocalization.create({
+          data: {
+            productId: product.id,
+            languageCode: 'en',
+            name: data.localizations.en.name,
+            description: data.localizations.en.description || '',
+            slug: data.localizations.en.slug || data.localizations.en.name.toLowerCase().replace(/\s+/g, '-')
+          }
+        });
+        newLocalizations.push(enLocalization);
+      }
 
-    // Mevcut özellikleri sil
-    await featureRepository.remove(features);
-
-    // Yeni özellikleri ekle
-    if (data.features && Array.isArray(data.features)) {
-      const newFeatures = data.features.map(feature => {
-        const productFeature = new ProductFeature();
-        productFeature.productId = updatedProduct.id;
-        productFeature.languageCode = feature.languageCode || 'tr';
-        productFeature.title = feature.title;
-        productFeature.description = feature.description || '';
-        productFeature.icon = feature.icon || null;
-        return productFeature;
+      // Mevcut detayları sil
+      await tx.productDetail.deleteMany({
+        where: { productId: id }
       });
-      await featureRepository.save(newFeatures);
-    }
 
-    // Mevcut kullanım alanlarını sil
-    await usageAreaRepository.remove(usageAreas);
+      // Yeni detayları ekle
+      if (data.details) {
+        // Türkçe detay
+        await tx.productDetail.create({
+          data: {
+            productId: product.id,
+            languageCode: 'tr',
+            title: data.details.title || '',
+            content: data.details.content || ''
+          }
+        });
 
-    // Yeni kullanım alanlarını ekle
-    if (data.usageAreas && Array.isArray(data.usageAreas)) {
-      const newUsageAreas = data.usageAreas.map(area => {
-        const productUsageArea = new ProductUsageArea();
-        productUsageArea.productId = updatedProduct.id;
-        productUsageArea.languageCode = area.languageCode || 'tr';
-        productUsageArea.title = area.title;
-        productUsageArea.description = area.description || '';
-        productUsageArea.icon = area.icon || null;
-        return productUsageArea;
+        // İngilizce detay (opsiyonel)
+        if (data.details.en) {
+          await tx.productDetail.create({
+            data: {
+              productId: product.id,
+              languageCode: 'en',
+              title: data.details.en.title || '',
+              content: data.details.en.content || ''
+            }
+          });
+        }
+      }
+
+      // Mevcut özellikleri sil
+      await tx.productFeature.deleteMany({
+        where: { productId: id }
       });
-      await usageAreaRepository.save(newUsageAreas);
-    }
+
+      // Yeni özellikleri ekle
+      if (data.features && Array.isArray(data.features)) {
+        for (const feature of data.features) {
+          await tx.productFeature.create({
+            data: {
+              productId: product.id,
+              languageCode: feature.languageCode || 'tr',
+              title: feature.title,
+              description: feature.description || '',
+              icon: feature.icon || null
+            }
+          });
+        }
+      }
+
+      // Mevcut kullanım alanlarını sil
+      await tx.productUsageArea.deleteMany({
+        where: { productId: id }
+      });
+
+      // Yeni kullanım alanlarını ekle
+      if (data.usageAreas && Array.isArray(data.usageAreas)) {
+        for (const area of data.usageAreas) {
+          await tx.productUsageArea.create({
+            data: {
+              productId: product.id,
+              languageCode: area.languageCode || 'tr',
+              title: area.title,
+              description: area.description || '',
+              icon: area.icon || null
+            }
+          });
+        }
+      }
+
+      return product;
+    });
+
+    // Güncellenmiş ürünü tüm ilişkileriyle birlikte getir
+    const updatedProductWithRelations = await prisma.product.findUnique({
+      where: { id: updatedProduct.id },
+      include: {
+        localizations: true,
+        features: true,
+        details: true,
+        usageAreas: true
+      }
+    });
 
     // İşlem başarılı olduğunda yanıt döndür
     return createApiResponse(
       request,
       {
         message: 'Ürün başarıyla güncellendi',
-        product: {
-          ...updatedProduct,
-          localizations: newLocalizations,
-          details: data.details,
-          features: data.features,
-          usageAreas: data.usageAreas
-        }
+        product: updatedProductWithRelations
       }
     );
   } catch (error) {
@@ -291,12 +297,8 @@ export async function DELETE(
       return createApiErrorResponse(request, 'Geçersiz ürün ID', { status: 400 });
     }
 
-    // TypeORM DataSource oluştur
-    const dataSource = await getDataSource();
-    const productRepository = dataSource.getRepository(Product);
-
-    // Ürünün varlığını kontrol et
-    const existingProduct = await productRepository.findOne({
+    // Prisma ile ürünün varlığını kontrol et
+    const existingProduct = await prisma.product.findUnique({
       where: { id }
     });
 
@@ -304,8 +306,12 @@ export async function DELETE(
       return createApiErrorResponse(request, 'Ürün bulunamadı', { status: 404 });
     }
 
-    // Ürünü sil - cascade yapılandırması sayesinde ilişkili kayıtlar da silinecek
-    await productRepository.remove(existingProduct);
+    // Prisma transaction ile silme işlemini gerçekleştir
+    // Not: Prisma şemasında onDelete: Cascade tanımlandığı için
+    // ilişkili kayıtlar otomatik olarak silinecektir
+    await prisma.product.delete({
+      where: { id }
+    });
 
     // İşlem başarılı
     return createApiResponse(request, {
