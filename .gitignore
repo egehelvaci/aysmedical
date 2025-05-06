@@ -1,0 +1,62 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env
+.env.development
+.env.production
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Büyük dosyalar
+*.mp4
+*.avi
+*.mov
+*.webm
+*.mkv
+*.pack
+*.node
+
+# Video içeren klasörler
+/public/images/numbers/
+/public/images/aboutus/
+/public/images/hero/
+/public/images/header/
+/public/images/contact/
+/public/images/products/
+/public/images/services/
+
+# Build dosyaları
+*.dll
+*.exe
+*.o
+*.so
+*.dylib
+*.lib

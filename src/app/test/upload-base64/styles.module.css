@@ -1,0 +1,244 @@
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.title {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #333;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.uploadSection {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.dropzone {
+  margin-bottom: 1.5rem;
+}
+
+.fileInput {
+  display: none;
+}
+
+.fileLabel {
+  display: block;
+  width: 100%;
+  min-height: 200px;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.fileLabel:hover {
+  border-color: #0070f3;
+}
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.subtext {
+  font-size: 0.9rem;
+  color: #888;
+  margin-top: 0.5rem;
+}
+
+.preview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  max-height: 300px;
+  background-color: #f5f5f5;
+}
+
+.controls {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.uploadButton {
+  background-color: #0070f3;
+  color: white;
+}
+
+.uploadButton:hover:not(:disabled) {
+  background-color: #0051a8;
+}
+
+.resetButton {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.resetButton:hover {
+  background-color: #e5e5e5;
+}
+
+.error {
+  background-color: #ffe6e6;
+  border-left: 4px solid #ff4d4d;
+  padding: 1rem;
+  margin-top: 1rem;
+  border-radius: 4px;
+  color: #d32f2f;
+}
+
+.result {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+}
+
+.result h2 {
+  text-align: center;
+  color: #0070f3;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+}
+
+.result h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.urlBox {
+  margin-bottom: 1.5rem;
+}
+
+.urlContainer {
+  display: flex;
+  margin-bottom: 1rem;
+}
+
+.urlInput {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px 0 0 4px;
+  font-size: 0.9rem;
+  background-color: #f9f9f9;
+}
+
+.copyButton {
+  padding: 0 1rem;
+  background-color: #0070f3;
+  color: white;
+  border: none;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+}
+
+.copyButton:hover {
+  background-color: #0051a8;
+}
+
+.imagePreview {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.resultImage {
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+}
+
+.metaData {
+  margin-top: 1.5rem;
+  background-color: #f9f9f9;
+  padding: 1.5rem;
+  border-radius: 4px;
+}
+
+.metaData ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.metaData li {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.alternativeUrls {
+  margin-top: 1.5rem;
+}
+
+.alternativeUrls ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.alternativeUrl {
+  display: flex;
+  margin-bottom: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .urlContainer {
+    flex-direction: column;
+  }
+  
+  .urlInput {
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+  }
+  
+  .copyButton {
+    border-radius: 4px;
+  }
+  
+  .controls {
+    flex-direction: column;
+  }
+  
+  .button {
+    width: 100%;
+  }
+} 

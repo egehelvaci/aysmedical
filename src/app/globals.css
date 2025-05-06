@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  color-scheme: light; /* Tarayıcılara light tema kullanılacağını belirt */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Karanlık mod media query'i kaldırıldı - Tarayıcı karanlık modu devre dışı bırakıldı */
+/* Açık temayı tüm tarayıcılar için sabitlemek amacıyla eklenen özellikler */
+html.light, 
+[data-color-mode="light"] {
+  --background: #ffffff;
+  --foreground: #171717;
+  background-color: #ffffff;
+  color: #171717;
+}
+
+html, body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+header + * {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+/* Safari, Chrome, Firefox ve Opera'ya özel ayarlar */
+@supports (-webkit-appearance:none) or (-moz-appearance:none) {
+  body {
+    background-color: #ffffff !important;
+    color: #171717 !important;
+  }
+}

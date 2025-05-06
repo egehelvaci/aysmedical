@@ -1,0 +1,25 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { warmupDatabaseConnection } from './lib/db';
+
+// Bu middleware Next.js uygulamasında her istek için çalışır
+export async function middleware(request: NextRequest) {
+  // API rotalarını işleyen middleware
+  if (request.nextUrl.pathname.startsWith('/api')) {
+    // Veritabanı bağlantısını önceden ısıtma - cold start etkisini azaltır
+    try {
+      await warmupDatabaseConnection();
+    } catch (error) {
+      console.error('Veritabanı ısıtma hatası:', error);
+    }
+  }
+
+  // Normal response ile devam et
+  return NextResponse.next();
+}
+
+// Hangi path'lerde middleware'in çalışacağını belirt
+export const config = {
+  // Sadece API rotalarında çalıştır
+  matcher: '/api/:path*',
+}; 
