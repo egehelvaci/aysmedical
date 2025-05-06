@@ -22,10 +22,11 @@ export class ProductLocalization {
   slug: string;
 
   @ManyToOne("Product", "localizations", {
-    onDelete: "CASCADE"
+    onDelete: "CASCADE",
+    lazy: true
   })
   @JoinColumn({ name: "productId" })
-  product: any;
+  product: Promise<any>;
 
   @CreateDateColumn()
   createdAt: Date;

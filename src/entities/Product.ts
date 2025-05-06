@@ -19,25 +19,29 @@ export class Product {
 
   @OneToMany("ProductLocalization", "product", {
     cascade: true,
-    onDelete: "CASCADE"
+    onDelete: "CASCADE",
+    lazy: true
   })
-  localizations: any[];
+  localizations: Promise<any[]>;
 
   @OneToMany("ProductFeature", "product", {
     cascade: true,
-    onDelete: "CASCADE"
+    onDelete: "CASCADE",
+    lazy: true
   })
-  features: any[];
+  features: Promise<any[]>;
 
   @OneToMany("ProductDetail", "product", {
     cascade: true,
-    onDelete: "CASCADE"
+    onDelete: "CASCADE",
+    lazy: true
   })
-  details: any[];
+  details: Promise<any[]>;
 
   @OneToMany("ProductUsageArea", "product", {
     cascade: true,
-    onDelete: "CASCADE"
+    onDelete: "CASCADE",
+    lazy: true
   })
-  usageAreas: any[];
+  usageAreas: Promise<any[]>;
 } 

@@ -21,10 +21,11 @@ export class ProductUsageArea {
   icon: string;
 
   @ManyToOne("Product", "usageAreas", {
-    onDelete: "CASCADE"
+    onDelete: "CASCADE",
+    lazy: true
   })
   @JoinColumn({ name: "productId" })
-  product: any;
+  product: Promise<any>;
 
   @CreateDateColumn()
   createdAt: Date;

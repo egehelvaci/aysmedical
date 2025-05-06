@@ -18,10 +18,11 @@ export class ProductDetail {
   content: string;
 
   @ManyToOne("Product", "details", {
-    onDelete: "CASCADE"
+    onDelete: "CASCADE",
+    lazy: true
   })
   @JoinColumn({ name: "productId" })
-  product: any;
+  product: Promise<any>;
 
   @CreateDateColumn()
   createdAt: Date;
