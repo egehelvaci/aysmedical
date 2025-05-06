@@ -511,8 +511,8 @@ export default function ContactPage({ lang }: ContactPageProps) {
                   <li className="flex items-start">
                     <span className="w-2 h-2 rounded-full bg-slate-600 mt-2 mr-2"></span>
                     {language === 'tr' 
-                      ? 'Mecidiyeköy-Mahmutbey metro hattını kullanarak Nurtepe istasyonunda inin.' 
-                      : 'Take the Mecidiyeköy-Mahmutbey metro line and get off at Nurtepe station.'}
+                      ? 'Mecidiyeköy-Mahmutbey metro hattını kullanarak Mecidiyeköy istasyonunda inin.' 
+                      : 'Take the Mecidiyeköy-Mahmutbey metro line and get off at Mecidiyeköy station.'}
                   </li>
                   <li className="flex items-start">
                     <span className="w-2 h-2 rounded-full bg-slate-600 mt-2 mr-2"></span>
