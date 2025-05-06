@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getDataSource } from '@/lib/typeorm';
-import { ContactMessage } from '@/entities/ContactMessage';
+import { prisma } from '@/lib/prisma';
 import nodemailer from 'nodemailer';
 import {
   SMTP_HOST,
@@ -71,24 +70,17 @@ export async function POST(request: NextRequest) {
     const languageCode = data.languageCode || 'tr';
     
     try {
-      // Veritabanı bağlantısını al
-      const dataSource = await getDataSource();
-      
-      // ContactMessage repository'sini al
-      const contactMessageRepository = dataSource.getRepository(ContactMessage);
-      
-      // Mesajı veritabanına kaydet
-      const contactMessage = contactMessageRepository.create({
-        name: data.name,
-        email: data.email,
-        phone: data.phone || null,
-        subject: data.subject,
-        message: data.message,
-        languageCode,
-        isRead: false,
+      // Prisma ile mesajı veritabanına kaydet
+      const contactMessage = await prisma.contactMessage.create({
+        data: {
+          name: data.name,
+          email: data.email,
+          phone: data.phone || null,
+          message: data.message,
+          status: 'new',
+          read: false
+        }
       });
-      
-      await contactMessageRepository.save(contactMessage);
       
       // E-posta gönder
       try {

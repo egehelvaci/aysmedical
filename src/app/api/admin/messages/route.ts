@@ -1,30 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDataSource } from '@/lib/typeorm';
-import { ContactMessage } from '@/entities/ContactMessage';
+import { prisma } from '@/lib/prisma';
 import { isAuthenticated } from '@/lib/auth';
 
 // Tüm mesajları getir
 export async function GET(request: NextRequest) {
   try {
     // Admin yetki kontrolü
-    const isAdmin = await isAuthenticated(request);
+    const authResult = await isAuthenticated(request);
     
-    if (!isAdmin) {
+    if (!authResult.authenticated) {
       return NextResponse.json(
         { error: 'Bu işlem için yetkiniz bulunmamaktadır' },
         { status: 401 }
       );
     }
     
-    // Veritabanı bağlantısını al
-    const dataSource = await getDataSource();
-    
     // Mesajları, en yeni en üstte olacak şekilde getir
-    const messages = await dataSource
-      .getRepository(ContactMessage)
-      .createQueryBuilder('message')
-      .orderBy('message.createdAt', 'DESC')
-      .getMany();
+    const messages = await prisma.contactMessage.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
     
     return NextResponse.json({ messages });
   } catch (error) {

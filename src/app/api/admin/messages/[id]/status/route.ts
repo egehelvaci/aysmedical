@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDataSource } from '@/lib/typeorm';
-import { ContactMessage } from '@/entities/ContactMessage';
+import { prisma } from '@/lib/prisma';
 import { isAuthenticated } from '@/lib/auth';
 
 // PUT - Mesajı okundu/okunmadı olarak işaretle
@@ -10,9 +9,9 @@ export async function PUT(
 ) {
   try {
     // Admin yetki kontrolü
-    const isAdmin = await isAuthenticated(request);
+    const authResult = await isAuthenticated(request);
     
-    if (!isAdmin) {
+    if (!authResult.authenticated) {
       return NextResponse.json(
         { error: 'Bu işlem için yetkiniz bulunmamaktadır' },
         { status: 401 }
@@ -34,12 +33,10 @@ export async function PUT(
     const pathname = request.nextUrl.pathname;
     const isRead = pathname.endsWith('/read');
     
-    // Veritabanı bağlantısını al
-    const dataSource = await getDataSource();
-    
-    // Mesajı getir
-    const messageRepository = dataSource.getRepository(ContactMessage);
-    const message = await messageRepository.findOne({ where: { id } });
+    // Mesajı kontrol et
+    const message = await prisma.contactMessage.findUnique({
+      where: { id }
+    });
     
     if (!message) {
       return NextResponse.json(
@@ -49,8 +46,12 @@ export async function PUT(
     }
     
     // Mesajı güncelle
-    message.isRead = isRead;
-    await messageRepository.save(message);
+    const updatedMessage = await prisma.contactMessage.update({
+      where: { id },
+      data: {
+        read: isRead
+      }
+    });
     
     return NextResponse.json({ 
       success: true,

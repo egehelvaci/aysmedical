@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDataSource } from '@/lib/typeorm'; // prisma yerine typeorm kullanılacak
-import { Admin } from '@/entities/Admin';
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 import { corsMiddleware } from '@/app/api/cors-middleware';
 
@@ -22,12 +21,8 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // TypeORM DataSource'a bağlan
-      const dataSource = await getDataSource();
-      const adminRepository = dataSource.getRepository(Admin);
-      
       // Kullanıcının veritabanında aranması
-      const admin = await adminRepository.findOne({
+      const admin = await prisma.admin.findUnique({
         where: { username }
       });
 
@@ -67,9 +62,7 @@ export async function POST(request: NextRequest) {
         message: 'Giriş başarılı',
         admin: {
           id: admin.id,
-          username: admin.username,
-          email: admin.email,
-          fullName: admin.fullName || '',
+          username: admin.username
         },
       });
 

@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getDataSource } from '@/lib/typeorm';
-import { ContactMessage } from '@/entities/ContactMessage';
+import { prisma } from '@/lib/prisma';
 import { isAuthenticated } from '@/lib/auth';
 import { createApiResponse, createApiErrorResponse } from '@/app/api/api-utils';
 
@@ -20,13 +19,9 @@ export async function PUT(
     if (isNaN(id)) {
       return createApiErrorResponse(request, 'Geçersiz mesaj ID', { status: 400 });
     }
-
-    // Veritabanı bağlantısını al
-    const dataSource = await getDataSource();
-    const messageRepository = dataSource.getRepository(ContactMessage);
     
     // Mesajın varlığını kontrol et
-    const existingMessage = await messageRepository.findOne({ 
+    const existingMessage = await prisma.contactMessage.findUnique({ 
       where: { id } 
     });
 
@@ -35,8 +30,12 @@ export async function PUT(
     }
 
     // Mesajı okundu olarak işaretle
-    existingMessage.isRead = true;
-    const updatedMessage = await messageRepository.save(existingMessage);
+    const updatedMessage = await prisma.contactMessage.update({
+      where: { id },
+      data: {
+        read: true
+      }
+    });
 
     // Başarılı yanıt döndür
     return createApiResponse(

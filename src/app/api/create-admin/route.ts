@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDataSource } from '@/lib/typeorm';
-import { Admin } from '@/entities/Admin';
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 
 // Admin oluşturma api'si
@@ -18,12 +17,8 @@ export async function GET(request: NextRequest) {
     }
     
     try {
-      // TypeORM DataSource'a bağlan
-      const dataSource = await getDataSource();
-      const adminRepository = dataSource.getRepository(Admin);
-      
       // Mevcut admin kullanıcılarını kontrol et
-      const admins = await adminRepository.find();
+      const admins = await prisma.admin.findMany();
       
       if (admins.length > 0) {
         return NextResponse.json({ 
@@ -32,8 +27,7 @@ export async function GET(request: NextRequest) {
           count: admins.length,
           admins: admins.map(admin => ({
             id: admin.id,
-            username: admin.username,
-            email: admin.email
+            username: admin.username
           }))
         });
       }
@@ -43,22 +37,19 @@ export async function GET(request: NextRequest) {
       const saltRounds = 10;
       const hashedPassword = await bcrypt.hash('AysMedical.951', saltRounds);
       
-      // Yeni admin nesnesi oluştur
-      const newAdmin = new Admin();
-      newAdmin.username = 'admin';
-      newAdmin.password = hashedPassword;
-      newAdmin.email = 'info@ayshealth.com.tr';
-      newAdmin.fullName = 'AYS Medical Admin';
-      
-      // Veritabanına kaydet
-      const savedAdmin = await adminRepository.save(newAdmin);
+      // Yeni admin oluştur ve veritabanına kaydet
+      const savedAdmin = await prisma.admin.create({
+        data: {
+          username: 'admin',
+          password: hashedPassword
+        }
+      });
       
       return NextResponse.json({ 
         success: true, 
         message: 'Yeni admin kullanıcısı oluşturuldu',
         admin: {
-          username: savedAdmin.username,
-          email: savedAdmin.email
+          username: savedAdmin.username
         }
       });
     } catch (error) {
@@ -95,14 +86,10 @@ export async function POST(request: NextRequest) {
 
     // İstekten kullanıcı bilgilerini al
     const requestData = await request.json();
-    const { username = 'aysmedical', email = 'info@ayshealth.com.tr', password = 'AysMedical.951' } = requestData;
+    const { username = 'aysmedical', password = 'AysMedical.951' } = requestData;
 
-    // TypeORM DataSource'a bağlan
-    const dataSource = await getDataSource();
-    const adminRepository = dataSource.getRepository(Admin);
-    
     // Kullanıcı adını kontrol et, varsa işlemi atla
-    const existingAdmin = await adminRepository.findOne({
+    const existingAdmin = await prisma.admin.findUnique({
       where: { username }
     });
 
@@ -111,8 +98,7 @@ export async function POST(request: NextRequest) {
         success: true, 
         message: 'Admin kullanıcısı zaten mevcut',
         admin: {
-          username: existingAdmin.username,
-          email: existingAdmin.email
+          username: existingAdmin.username
         }
       });
     }
@@ -121,22 +107,19 @@ export async function POST(request: NextRequest) {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Yeni admin oluştur
-    const newAdmin = new Admin();
-    newAdmin.username = username;
-    newAdmin.password = hashedPassword;
-    newAdmin.email = email;
-    newAdmin.fullName = 'AYS Medical Admin';
-    
-    // Veritabanına kaydet
-    const savedAdmin = await adminRepository.save(newAdmin);
+    // Yeni admin oluştur ve veritabanına kaydet
+    const savedAdmin = await prisma.admin.create({
+      data: {
+        username,
+        password: hashedPassword
+      }
+    });
 
     return NextResponse.json({ 
       success: true, 
       message: 'Yeni admin kullanıcısı oluşturuldu',
       admin: {
-        username: savedAdmin.username,
-        email: savedAdmin.email
+        username: savedAdmin.username
       }
     });
   } catch (error) {

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDataSource } from '@/lib/typeorm';
-import { ContactMessage } from '@/entities/ContactMessage';
+import { prisma } from '@/lib/prisma';
 import { isAuthenticated } from '@/lib/auth';
 
 // GET - Belirli bir mesaj detayını getir
@@ -10,9 +9,9 @@ export async function GET(
 ) {
   try {
     // Admin yetki kontrolü
-    const isAdmin = await isAuthenticated(request);
+    const authResult = await isAuthenticated(request);
     
-    if (!isAdmin) {
+    if (!authResult.authenticated) {
       return NextResponse.json(
         { error: 'Bu işlem için yetkiniz bulunmamaktadır' },
         { status: 401 }
@@ -28,13 +27,10 @@ export async function GET(
       );
     }
     
-    // Veritabanı bağlantısını al
-    const dataSource = await getDataSource();
-    
     // Mesaj detayını getir
-    const message = await dataSource
-      .getRepository(ContactMessage)
-      .findOne({ where: { id } });
+    const message = await prisma.contactMessage.findUnique({
+      where: { id }
+    });
     
     if (!message) {
       return NextResponse.json(
@@ -60,9 +56,9 @@ export async function DELETE(
 ) {
   try {
     // Admin yetki kontrolü
-    const isAdmin = await isAuthenticated(request);
+    const authResult = await isAuthenticated(request);
     
-    if (!isAdmin) {
+    if (!authResult.authenticated) {
       return NextResponse.json(
         { error: 'Bu işlem için yetkiniz bulunmamaktadır' },
         { status: 401 }
@@ -78,13 +74,10 @@ export async function DELETE(
       );
     }
     
-    // Veritabanı bağlantısını al
-    const dataSource = await getDataSource();
-    
-    // Mesajı kontrol et
-    const message = await dataSource
-      .getRepository(ContactMessage)
-      .findOne({ where: { id } });
+    // Mesajı silmeden önce kontrol et
+    const message = await prisma.contactMessage.findUnique({
+      where: { id }
+    });
     
     if (!message) {
       return NextResponse.json(
@@ -94,9 +87,9 @@ export async function DELETE(
     }
     
     // Mesajı sil
-    await dataSource
-      .getRepository(ContactMessage)
-      .remove(message);
+    await prisma.contactMessage.delete({
+      where: { id }
+    });
     
     return NextResponse.json({ 
       success: true,

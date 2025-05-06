@@ -1,0 +1,108 @@
+// Veritabanı bağlantı bilgileri
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Product modeli
+model Product {
+  id          Int                  @id @default(autoincrement())
+  code        String               @unique
+  image_url   String?
+  createdAt   DateTime             @default(now()) @map("createdAt")
+  updatedAt   DateTime             @updatedAt @map("updatedAt")
+  
+  // İlişkiler
+  localizations ProductLocalization[]
+  features      ProductFeature[]
+  details       ProductDetail[]
+  usageAreas    ProductUsageArea[]
+}
+
+// ProductLocalization modeli
+model ProductLocalization {
+  id           Int      @id @default(autoincrement())
+  productId    Int
+  languageCode String
+  name         String
+  description  String?
+  slug         String
+  createdAt    DateTime @default(now()) @map("createdAt")
+  updatedAt    DateTime @updatedAt @map("updatedAt")
+  
+  // İlişkiler
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  // Benzersiz kısıt
+  @@unique([productId, languageCode])
+}
+
+// ProductFeature modeli
+model ProductFeature {
+  id           Int      @id @default(autoincrement())
+  productId    Int
+  languageCode String
+  title        String
+  description  String?
+  icon         String?
+  createdAt    DateTime @default(now()) @map("createdAt")
+  updatedAt    DateTime @updatedAt @map("updatedAt")
+  
+  // İlişkiler
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// ProductDetail modeli
+model ProductDetail {
+  id           Int      @id @default(autoincrement())
+  productId    Int
+  languageCode String
+  title        String
+  content      String
+  createdAt    DateTime @default(now()) @map("createdAt")
+  updatedAt    DateTime @updatedAt @map("updatedAt")
+  
+  // İlişkiler
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// ProductUsageArea modeli
+model ProductUsageArea {
+  id           Int      @id @default(autoincrement())
+  productId    Int
+  languageCode String
+  title        String
+  description  String?
+  icon         String?
+  createdAt    DateTime @default(now()) @map("createdAt")
+  updatedAt    DateTime @updatedAt @map("updatedAt")
+  
+  // İlişkiler
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// Admin modeli
+model Admin {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now()) @map("createdAt")
+  updatedAt DateTime @updatedAt @map("updatedAt")
+}
+
+// ContactMessage modeli
+model ContactMessage {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String
+  phone     String?
+  message   String
+  status    String    @default("new")
+  read      Boolean   @default(false)
+  createdAt DateTime  @default(now()) @map("createdAt")
+  updatedAt DateTime  @updatedAt @map("updatedAt")
+} 

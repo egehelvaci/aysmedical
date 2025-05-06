@@ -29,25 +29,25 @@ export async function GET(
     const dataSource = await getDataSource();
     const productRepository = dataSource.getRepository(Product);
 
-    // Ürünü getir
+    // Ürünü getir - lazy loading kullanarak
     const product = await productRepository.findOne({
-      where: { id },
-      relations: {
-        localizations: true,
-        features: true,
-        usageAreas: true,
-        details: true
-      }
+      where: { id }
     });
 
     if (!product) {
       return createApiErrorResponse(request, 'Ürün bulunamadı', { status: 404 });
     }
 
+    // Lazy loading ile ilişkileri yükle
+    const localizations = await product.localizations;
+    const features = await product.features;
+    const usageAreas = await product.usageAreas;
+    const details = await product.details;
+
     // Dil bazlı lokalizasyonları düzenle
-    const localizations: Record<string, any> = {};
-    product.localizations.forEach(loc => {
-      localizations[loc.languageCode] = {
+    const localizationsByLang: Record<string, any> = {};
+    localizations.forEach(loc => {
+      localizationsByLang[loc.languageCode] = {
         name: loc.name,
         description: loc.description || '',
         slug: loc.slug || ''
@@ -55,9 +55,9 @@ export async function GET(
     });
 
     // Dil bazlı detayları düzenle
-    const details: Record<string, any> = {};
-    product.details.forEach(detail => {
-      details[detail.languageCode] = {
+    const detailsByLang: Record<string, any> = {};
+    details.forEach(detail => {
+      detailsByLang[detail.languageCode] = {
         title: detail.title,
         content: detail.content
       };
@@ -68,10 +68,10 @@ export async function GET(
       id: product.id,
       code: product.code,
       image_url: product.image_url,
-      localizations,
-      details,
-      features: product.features || [],
-      usageAreas: product.usageAreas || [],
+      localizations: localizationsByLang,
+      details: detailsByLang,
+      features: features || [],
+      usageAreas: usageAreas || [],
       createdAt: product.createdAt,
       updatedAt: product.updatedAt
     });
@@ -113,20 +113,20 @@ export async function PUT(
     const featureRepository = dataSource.getRepository(ProductFeature);
     const usageAreaRepository = dataSource.getRepository(ProductUsageArea);
 
-    // Ürünün varlığını kontrol et
+    // Ürünün varlığını kontrol et - lazy loading kullanarak
     const existingProduct = await productRepository.findOne({
-      where: { id },
-      relations: {
-        localizations: true,
-        features: true,
-        usageAreas: true,
-        details: true
-      }
+      where: { id }
     });
 
     if (!existingProduct) {
       return createApiErrorResponse(request, 'Ürün bulunamadı', { status: 404 });
     }
+
+    // Lazy loading ile ilişkileri yükle
+    const localizations = await existingProduct.localizations;
+    const features = await existingProduct.features;
+    const usageAreas = await existingProduct.usageAreas;
+    const details = await existingProduct.details;
 
     // Gelen veriyi al
     const data = await request.json();
@@ -158,10 +158,10 @@ export async function PUT(
     const updatedProduct = await productRepository.save(existingProduct);
 
     // Mevcut lokalizasyonları sil
-    await localizationRepository.remove(existingProduct.localizations);
+    await localizationRepository.remove(localizations);
 
     // Yeni lokalizasyonları ekle
-    const localizations = [];
+    const newLocalizations = [];
     
     // Türkçe
     if (data.localizations.tr) {
@@ -173,7 +173,7 @@ export async function PUT(
       trLocalization.slug = data.localizations.tr.slug || data.localizations.tr.name.toLowerCase().replace(/\s+/g, '-');
       
       const savedTrLoc = await localizationRepository.save(trLocalization);
-      localizations.push(savedTrLoc);
+      newLocalizations.push(savedTrLoc);
     }
     
     // İngilizce (opsiyonel)
@@ -186,11 +186,11 @@ export async function PUT(
       enLocalization.slug = data.localizations.en.slug || data.localizations.en.name.toLowerCase().replace(/\s+/g, '-');
       
       const savedEnLoc = await localizationRepository.save(enLocalization);
-      localizations.push(savedEnLoc);
+      newLocalizations.push(savedEnLoc);
     }
 
     // Mevcut detayları sil
-    await detailRepository.remove(existingProduct.details);
+    await detailRepository.remove(details);
 
     // Yeni detayları ekle
     if (data.details) {
@@ -214,11 +214,11 @@ export async function PUT(
     }
 
     // Mevcut özellikleri sil
-    await featureRepository.remove(existingProduct.features);
+    await featureRepository.remove(features);
 
     // Yeni özellikleri ekle
     if (data.features && Array.isArray(data.features)) {
-      const features = data.features.map(feature => {
+      const newFeatures = data.features.map(feature => {
         const productFeature = new ProductFeature();
         productFeature.productId = updatedProduct.id;
         productFeature.languageCode = feature.languageCode || 'tr';
@@ -227,15 +227,15 @@ export async function PUT(
         productFeature.icon = feature.icon || null;
         return productFeature;
       });
-      await featureRepository.save(features);
+      await featureRepository.save(newFeatures);
     }
 
     // Mevcut kullanım alanlarını sil
-    await usageAreaRepository.remove(existingProduct.usageAreas);
+    await usageAreaRepository.remove(usageAreas);
 
     // Yeni kullanım alanlarını ekle
     if (data.usageAreas && Array.isArray(data.usageAreas)) {
-      const usageAreas = data.usageAreas.map(area => {
+      const newUsageAreas = data.usageAreas.map(area => {
         const productUsageArea = new ProductUsageArea();
         productUsageArea.productId = updatedProduct.id;
         productUsageArea.languageCode = area.languageCode || 'tr';
@@ -244,7 +244,7 @@ export async function PUT(
         productUsageArea.icon = area.icon || null;
         return productUsageArea;
       });
-      await usageAreaRepository.save(usageAreas);
+      await usageAreaRepository.save(newUsageAreas);
     }
 
     // İşlem başarılı olduğunda yanıt döndür
@@ -254,7 +254,7 @@ export async function PUT(
         message: 'Ürün başarıyla güncellendi',
         product: {
           ...updatedProduct,
-          localizations,
+          localizations: newLocalizations,
           details: data.details,
           features: data.features,
           usageAreas: data.usageAreas

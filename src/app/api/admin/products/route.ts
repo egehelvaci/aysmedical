@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDataSource } from '@/lib/typeorm';
-import { Product } from '@/entities/Product';
-import { ProductLocalization } from '@/entities/ProductLocalization';
-import { ProductDetail } from '@/entities/ProductDetail';
-import { ProductFeature } from '@/entities/ProductFeature';
-import { ProductUsageArea } from '@/entities/ProductUsageArea';
+import { prisma } from '@/lib/prisma';
 import { isAuthenticated } from '@/lib/auth';
 import { createApiResponse, createApiErrorResponse, handleOptionsRequest } from '@/app/api/api-utils';
 
@@ -17,20 +12,16 @@ export async function GET(request: NextRequest) {
       return createApiErrorResponse(request, 'Yetkisiz erişim', { status: 401 });
     }
 
-    // TypeORM DataSource oluştur
-    const dataSource = await getDataSource();
-    const productRepository = dataSource.getRepository(Product);
-
     // Ürünleri getir
-    const products = await productRepository.find({
-      relations: {
+    const products = await prisma.product.findMany({
+      orderBy: {
+        updatedAt: 'desc'
+      },
+      include: {
         localizations: true,
         features: true,
         usageAreas: true,
         details: true
-      },
-      order: {
-        updatedAt: 'DESC'
       }
     });
 
@@ -38,7 +29,6 @@ export async function GET(request: NextRequest) {
     const formattedProducts = products.map(product => {
       // Türkçe lokalizasyonu bul
       const trLocalization = product.localizations.find(loc => loc.languageCode === 'tr');
-      const trDetails = product.details.find(detail => detail.languageCode === 'tr');
       
       return {
         id: product.id,
@@ -103,13 +93,8 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // TypeORM DataSource oluştur
-      const dataSource = await getDataSource();
-      const productRepository = dataSource.getRepository(Product);
-      const localizationRepository = dataSource.getRepository(ProductLocalization);
-
       // Ürün kodunun benzersiz olduğunu kontrol et
-      const existingProduct = await productRepository.findOne({
+      const existingProduct = await prisma.product.findUnique({
         where: { code: data.code }
       });
 
@@ -121,92 +106,113 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Ürünü oluştur
-      const product = new Product();
-      product.code = data.code;
-      product.image_url = data.image_url;
-      
-      const savedProduct = await productRepository.save(product);
+      // Prisma transaction ile ürün ve ilişkili verileri oluştur
+      const result = await prisma.$transaction(async (tx) => {
+        // Ürünü oluştur
+        const product = await tx.product.create({
+          data: {
+            code: data.code,
+            image_url: data.image_url
+          }
+        });
 
-      // Dil bilgilerini ekle
-      const localizations = [];
-      
-      // Türkçe
-      if (data.localizations.tr) {
-        const trLocalization = new ProductLocalization();
-        trLocalization.productId = savedProduct.id;
-        trLocalization.languageCode = 'tr';
-        trLocalization.name = data.localizations.tr.name;
-        trLocalization.description = data.localizations.tr.description || '';
-        trLocalization.slug = data.localizations.tr.slug || data.localizations.tr.name.toLowerCase().replace(/\s+/g, '-');
+        // Dil bilgilerini ekle
+        const localizations = [];
         
-        const savedTrLoc = await localizationRepository.save(trLocalization);
-        localizations.push(savedTrLoc);
-      }
-      
-      // İngilizce (opsiyonel)
-      if (data.localizations.en?.name) {
-        const enLocalization = new ProductLocalization();
-        enLocalization.productId = savedProduct.id;
-        enLocalization.languageCode = 'en';
-        enLocalization.name = data.localizations.en.name;
-        enLocalization.description = data.localizations.en.description || '';
-        enLocalization.slug = data.localizations.en.slug || data.localizations.en.name.toLowerCase().replace(/\s+/g, '-');
-        
-        const savedEnLoc = await localizationRepository.save(enLocalization);
-        localizations.push(savedEnLoc);
-      }
-
-      // Ürün detaylarını ekle
-      if (data.details) {
-        const detailRepository = dataSource.getRepository(ProductDetail);
-        const detail = new ProductDetail();
-        detail.productId = savedProduct.id;
-        detail.languageCode = 'tr'; // Varsayılan dil
-        detail.title = data.details.title || '';
-        detail.content = data.details.content || '';
-        await detailRepository.save(detail);
-
-        // İngilizce detay (opsiyonel)
-        if (data.details.en) {
-          const enDetail = new ProductDetail();
-          enDetail.productId = savedProduct.id;
-          enDetail.languageCode = 'en';
-          enDetail.title = data.details.en.title || '';
-          enDetail.content = data.details.en.content || '';
-          await detailRepository.save(enDetail);
+        // Türkçe
+        if (data.localizations.tr) {
+          const trLocalization = await tx.productLocalization.create({
+            data: {
+              productId: product.id,
+              languageCode: 'tr',
+              name: data.localizations.tr.name,
+              description: data.localizations.tr.description || '',
+              slug: data.localizations.tr.slug || data.localizations.tr.name.toLowerCase().replace(/\s+/g, '-')
+            }
+          });
+          localizations.push(trLocalization);
         }
-      }
+        
+        // İngilizce (opsiyonel)
+        if (data.localizations.en?.name) {
+          const enLocalization = await tx.productLocalization.create({
+            data: {
+              productId: product.id,
+              languageCode: 'en',
+              name: data.localizations.en.name,
+              description: data.localizations.en.description || '',
+              slug: data.localizations.en.slug || data.localizations.en.name.toLowerCase().replace(/\s+/g, '-')
+            }
+          });
+          localizations.push(enLocalization);
+        }
 
-      // Özellikleri ekle
-      if (data.features && Array.isArray(data.features)) {
-        const featureRepository = dataSource.getRepository(ProductFeature);
-        const features = data.features.map(feature => {
-          const productFeature = new ProductFeature();
-          productFeature.productId = savedProduct.id;
-          productFeature.languageCode = feature.languageCode || 'tr';
-          productFeature.title = feature.title;
-          productFeature.description = feature.description || '';
-          productFeature.icon = feature.icon || null;
-          return productFeature;
-        });
-        await featureRepository.save(features);
-      }
+        // Ürün detaylarını ekle
+        if (data.details) {
+          // Türkçe detay
+          await tx.productDetail.create({
+            data: {
+              productId: product.id,
+              languageCode: 'tr',
+              title: data.details.title || '',
+              content: data.details.content || ''
+            }
+          });
 
-      // Kullanım alanlarını ekle
-      if (data.usageAreas && Array.isArray(data.usageAreas)) {
-        const usageAreaRepository = dataSource.getRepository(ProductUsageArea);
-        const usageAreas = data.usageAreas.map(area => {
-          const productUsageArea = new ProductUsageArea();
-          productUsageArea.productId = savedProduct.id;
-          productUsageArea.languageCode = area.languageCode || 'tr';
-          productUsageArea.title = area.title;
-          productUsageArea.description = area.description || '';
-          productUsageArea.icon = area.icon || null;
-          return productUsageArea;
-        });
-        await usageAreaRepository.save(usageAreas);
-      }
+          // İngilizce detay (opsiyonel)
+          if (data.details.en) {
+            await tx.productDetail.create({
+              data: {
+                productId: product.id,
+                languageCode: 'en',
+                title: data.details.en.title || '',
+                content: data.details.en.content || ''
+              }
+            });
+          }
+        }
+
+        // Özellikleri ekle
+        const features = [];
+        if (data.features && Array.isArray(data.features)) {
+          for (const feature of data.features) {
+            const savedFeature = await tx.productFeature.create({
+              data: {
+                productId: product.id,
+                languageCode: feature.languageCode || 'tr',
+                title: feature.title,
+                description: feature.description || '',
+                icon: feature.icon || null
+              }
+            });
+            features.push(savedFeature);
+          }
+        }
+
+        // Kullanım alanlarını ekle
+        const usageAreas = [];
+        if (data.usageAreas && Array.isArray(data.usageAreas)) {
+          for (const area of data.usageAreas) {
+            const savedArea = await tx.productUsageArea.create({
+              data: {
+                productId: product.id,
+                languageCode: area.languageCode || 'tr',
+                title: area.title,
+                description: area.description || '',
+                icon: area.icon || null
+              }
+            });
+            usageAreas.push(savedArea);
+          }
+        }
+
+        return {
+          product,
+          localizations,
+          features,
+          usageAreas
+        };
+      });
 
       // Yanıt döndür
       return createApiResponse(
@@ -214,11 +220,10 @@ export async function POST(request: NextRequest) {
         {
           message: 'Ürün başarıyla oluşturuldu',
           product: {
-            ...savedProduct,
-            localizations,
-            details: data.details,
-            features: data.features,
-            usageAreas: data.usageAreas
+            ...result.product,
+            localizations: result.localizations,
+            features: result.features,
+            usageAreas: result.usageAreas
           }
         },
         { status: 201 }

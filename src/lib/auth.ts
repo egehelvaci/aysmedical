@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getDataSource } from './typeorm'; // prisma yerine typeorm kullanılacak
-import { Admin } from '@/entities/Admin';
+import { prisma } from './prisma';
 
 // Admin kimlik doğrulama middleware
 export async function isAuthenticated(req: NextRequest) {

@@ -1,15 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getDataSource } from '@/lib/typeorm';
-import { Product } from '@/entities/Product';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: Request, 
   { params }: { params: { slug: string } }
 ) {
   try {
-    // Veritabanı bağlantısını al
-    const dataSource = await getDataSource();
-    
     // Dil parametresini al
     const { searchParams } = new URL(request.url);
     const lang = searchParams.get('lang') || 'tr';
@@ -26,35 +22,36 @@ export async function GET(
     if (isNumeric) {
       // ID ile sorgula
       const productId = parseInt(slug);
-      product = await dataSource
-        .getRepository(Product)
-        .findOne({
+      product = await prisma.product.findUnique({
+        where: { id: productId },
+        include: {
+          localizations: true,
+          features: true,
+          usageAreas: true,
+          details: true
+        }
+      });
+    } else {
+      // Slug ile sorgula
+      const localization = await prisma.productLocalization.findFirst({
+        where: {
+          slug: slug,
+          languageCode: lang
+        }
+      });
+      
+      if (localization) {
+        const productId = localization.productId;
+        
+        product = await prisma.product.findUnique({
           where: { id: productId },
-          relations: {
+          include: {
             localizations: true,
             features: true,
-            usageAreas: true
+            usageAreas: true,
+            details: true
           }
         });
-    } else {
-      // Slug ile sorgula - öncelikle ürün ID'sini bul
-      const localization = await dataSource
-        .query(`SELECT "productId" FROM product_localization WHERE slug = $1 AND "languageCode" = $2 LIMIT 1`, 
-        [slug, lang]);
-      
-      if (localization && localization.length > 0) {
-        const productId = localization[0].productId;
-        
-        product = await dataSource
-          .getRepository(Product)
-          .findOne({
-            where: { id: productId },
-            relations: {
-              localizations: true,
-              features: true,
-              usageAreas: true
-            }
-          });
       }
     }
     
