@@ -77,8 +77,9 @@ export async function POST(request: NextRequest) {
           email: data.email,
           phone: data.phone || null,
           message: data.message,
-          status: 'new',
-          read: false
+          subject: data.subject || (languageCode === 'tr' ? 'İletişim Formu' : 'Contact Form'),
+          languageCode: languageCode,
+          isRead: false
         }
       });
       

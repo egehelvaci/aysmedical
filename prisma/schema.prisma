@@ -1,4 +1,3 @@
-// Veritabanı bağlantı bilgileri
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,114 +7,99 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Product modeli
 model Product {
-  id          Int                  @id @default(autoincrement())
-  code        String               @unique
-  image_url   String?
-  createdAt   DateTime             @default(now()) @map("createdAt")
-  updatedAt   DateTime             @updatedAt @map("updatedAt")
-  
-  // İlişkiler
-  localizations ProductLocalization[]
-  features      ProductFeature[]
+  id            Int                   @id(map: "PK_bebc9158e480b949565b4dc7a82") @default(autoincrement())
+  code          String                @unique(map: "UQ_99c39b067cfa73c783f0fc49a61") @db.VarChar
+  image_url     String?               @db.VarChar
+  createdAt     DateTime              @default(now()) @map("createdAt") @db.Timestamp(6)
+  updatedAt     DateTime              @default(now()) @updatedAt @map("updatedAt") @db.Timestamp(6)
   details       ProductDetail[]
+  features      ProductFeature[]
+  localizations ProductLocalization[]
   usageAreas    ProductUsageArea[]
 
   @@map("product")
 }
 
-// ProductLocalization modeli
 model ProductLocalization {
-  id           Int      @id @default(autoincrement())
+  id           Int      @id(map: "PK_610c2368e2537458741abaf4940") @default(autoincrement())
   productId    Int
-  languageCode String
-  name         String
+  languageCode String   @db.VarChar
+  name         String   @db.VarChar
   description  String?
-  slug         String
-  createdAt    DateTime @default(now()) @map("createdAt")
-  updatedAt    DateTime @updatedAt @map("updatedAt")
-  
-  // İlişkiler
-  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
-  // Benzersiz kısıt
-  @@unique([productId, languageCode])
+  slug         String   @db.VarChar
+  createdAt    DateTime @default(now()) @map("createdAt") @db.Timestamp(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updatedAt") @db.Timestamp(6)
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_87f6cfc175328ea92e21aa99416")
+
+  @@unique([productId, languageCode], map: "UQ_c8512df250a2459d8f84f215f97")
   @@map("product_localization")
 }
 
-// ProductFeature modeli
 model ProductFeature {
-  id           Int      @id @default(autoincrement())
+  id           Int      @id(map: "PK_ce3df3f0c53e07a2e0c6e162ff7") @default(autoincrement())
   productId    Int
-  languageCode String
-  title        String
+  languageCode String   @db.VarChar
+  title        String   @db.VarChar
   description  String?
-  icon         String?
-  createdAt    DateTime @default(now()) @map("createdAt")
-  updatedAt    DateTime @updatedAt @map("updatedAt")
-  
-  // İlişkiler
-  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
+  icon         String?  @db.VarChar
+  createdAt    DateTime @default(now()) @map("createdAt") @db.Timestamp(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updatedAt") @db.Timestamp(6)
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_15fb049ff7a7a7fc28810d02b36")
+
   @@map("product_feature")
 }
 
-// ProductDetail modeli
 model ProductDetail {
-  id           Int      @id @default(autoincrement())
+  id           Int      @id(map: "PK_12ea67a439667df5593ff68fc33") @default(autoincrement())
   productId    Int
-  languageCode String
-  title        String
+  languageCode String   @db.VarChar
+  title        String   @db.VarChar
   content      String
-  createdAt    DateTime @default(now()) @map("createdAt")
-  updatedAt    DateTime @updatedAt @map("updatedAt")
-  
-  // İlişkiler
-  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
+  createdAt    DateTime @default(now()) @map("createdAt") @db.Timestamp(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updatedAt") @db.Timestamp(6)
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_2c1471f10d59111c8d052b0bdbc")
+
   @@map("product_detail")
 }
 
-// ProductUsageArea modeli
 model ProductUsageArea {
-  id           Int      @id @default(autoincrement())
+  id           Int      @id(map: "PK_15c190e149b4e63b16b0e610144") @default(autoincrement())
   productId    Int
-  languageCode String
-  title        String
+  languageCode String   @db.VarChar
+  title        String   @db.VarChar
   description  String?
-  icon         String?
-  createdAt    DateTime @default(now()) @map("createdAt")
-  updatedAt    DateTime @updatedAt @map("updatedAt")
-  
-  // İlişkiler
-  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
+  icon         String?  @db.VarChar
+  createdAt    DateTime @default(now()) @map("createdAt") @db.Timestamp(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updatedAt") @db.Timestamp(6)
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_6d88cd0d58f18f1542348b697f8")
+
   @@map("product_usage_area")
 }
 
-// Admin modeli
 model Admin {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  password  String
-  createdAt DateTime @default(now()) @map("createdAt")
-  updatedAt DateTime @updatedAt @map("updatedAt")
-  
+  id        Int      @id(map: "PK_e032310bcef831fb83101899b10") @default(autoincrement())
+  username  String   @unique(map: "UQ_5e568e001f9d1b91f67815c580f") @db.VarChar
+  password  String   @db.VarChar
+  email     String   @unique(map: "UQ_de87485f6489f5d0995f5841952") @db.VarChar
+  fullName  String?  @db.VarChar
+  createdAt DateTime @default(now()) @map("createdAt") @db.Timestamp(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updatedAt") @db.Timestamp(6)
+
   @@map("admin")
 }
 
-// ContactMessage modeli
 model ContactMessage {
-  id        Int       @id @default(autoincrement())
-  name      String
-  email     String
-  phone     String?
-  message   String
-  status    String    @default("new")
-  read      Boolean   @default(false)
-  createdAt DateTime  @default(now()) @map("createdAt")
-  updatedAt DateTime  @updatedAt @map("updatedAt")
-  
+  id           Int      @id(map: "PK_1476ca9a6265a586f618ea918fd") @default(autoincrement())
+  message      String
+  isRead       Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("createdAt") @db.Timestamp(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updatedAt") @db.Timestamp(6)
+  name         String   @db.VarChar(100)
+  email        String   @db.VarChar(100)
+  phone        String?  @db.VarChar(20)
+  subject      String   @db.VarChar(100)
+  languageCode String   @default("tr") @db.VarChar(10)
+
   @@map("contact_message")
-} 
+}
