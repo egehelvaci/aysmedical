@@ -21,8 +21,8 @@
     "SMTP_PASSWORD": "AysMedical.951",
     "SMTP_FROM": "info@ayshealth.com.tr",
     "ADMIN_EMAIL": "info@ayshealth.com.tr",
-    "NEXT_PUBLIC_SITE_URL": "https://aysmedical.com",
-    "API_BASE_URL": "https://aysmedical.com",
+    "NEXT_PUBLIC_SITE_URL": "https://aysmedical.vercel.app",
+    "API_BASE_URL": "https://aysmedical.vercel.app",
     "NODE_ENV": "production"
   },
   "buildCommand": "npm run typeorm:direct-sync && next build",
